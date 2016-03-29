@@ -1,0 +1,47 @@
+Notes from Assignment:
+
+Expectation:
+
+Expected to design and implement a simple file system that can be mounted by the user under a directory in the user's machine.
+
+Only needs to work on Linux.
+
+
+Restrictions:
+- Limited Length filenames (select an upper limit such as 16.)
+- Limited file extensions (Could be set to 3- following hte common extension length)
+- No subdirectories (only a single root directory – this is a severe restriction – relaxing this would
+enable your file system to run many applications)
+- Your file system is implemented over an emulated disk system, which is provided to you.
+
+See image of diagram in assignment handout.
+
+
+mksfs()
+	- Formats the virtual disk implemented by the disk emulator and creates an instance of the simple file system on top of it.
+	- Should have support for fresh file system.
+	-
+
+sfs_getnextfilename(char *fname)
+	- Copies the name of the next file in the directory into fname and returns nonzero if there is a new file.
+	- Once all the files have been returned this function returns 0.
+	- Use this function to loop through the directory.
+
+sfs_fopen()
+	- Opens a file and returns the index that corresponds to the newly opened file in the file descriptor table.
+
+sfs_fclose()
+	- Closes a file removes the entry from the open file descriptor table.
+
+sfs_fwrite()
+	- writes the given number of bytes of buffered data in buf into the open file, starting from the current file pointer.
+
+sfs_fseek()
+	- moves the read/write pointer.
+
+sfs_remove()
+	- removes the file from the directory entry, releases the file allocation table entries and releases the data blocks used by the file.
+
+
+
+Notes from Lectures:
