@@ -23,7 +23,7 @@ void init_superblock(){
 }
 
 //create the file system
-void mksfs(int fresh){ 
+void mksfs(int fresh){
 	if(fresh){
 		printf("making new file system\n");
 		init_superblock();
@@ -77,5 +77,5 @@ void sfs_fseek(int fileID, int loc){
 
 int sfs_remove(char *file){
 	//implement sfs_remove here
-	return 0; 
+	return 0;
 }
