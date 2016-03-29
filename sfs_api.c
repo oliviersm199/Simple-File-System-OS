@@ -1,4 +1,7 @@
 #include "disk_emu.h"
+#include "sfs_api.h"
+
+#include <stdio.h>
 
 int seen = 0;
 
@@ -41,22 +44,44 @@ void mksfs(int fresh){
 	return;
 }
 
-int sfs_getnextfilename(char *fname); // get the name of the next file in directory
+int sfs_getnextfilename(char *fname) {
 
-int sfs_getfilesize(const char* path); // get the size of the given file
+	//Implement sfs_getnextfilename here
+	return 0;
+}
+int sfs_getfilesize(const char* path) {
 
-int sfs_fopen(char *name); // opens the given file
+	//Implement sfs_getfilesize here
+	return 0;
+}
+int sfs_fopen(char *name) {
 
-void sfs_fclose(int fileID); // closes the given file
+	//Implement sfs_fopen here
 
-void sfs_fwrite(int fileID, char *buf, int length){
+    /*
+     * For now, we only return 1
+     */
+    uint64_t test_file = 1;
+    fdt[test_file].inode = 1;
+    fdt[test_file].rwptr = 0;
+		return test_file;
+}
+
+int sfs_fclose(int fileID){
+
+	//Implement sfs_fclose here
+    fdt[0].inode = 0;
+    fdt[0].rwptr = 0;
+		return 0;
+}
+
+int sfs_fwrite(int fileID, const char *buf, int length){
 	file_descriptor* f = &fdt[fileID];
 	inode_t* n = &table[fileID];
 	/*
 	 *We know block 1 is free because this is a canned example.
 	 *You should call a helper function to find a free block.
 	 */
-
 	int block = 20;
 	n -> data_ptrs[0] = block;
 	n -> size += length;
@@ -65,10 +90,18 @@ void sfs_fwrite(int fileID, char *buf, int length){
 	return 0;
 }
 
-void sfs_fread(int fileID, char *buf, int length); // read characters from disk into buf
+int sfs_fread(int fileID, char *buf, int length){
+			//Implement sfs_fread here
+	    file_descriptor* f = &fdt[fileID];
+	    inode_t* n = &table[f->inode];
+
+	    int block = n->data_ptrs[0];
+	    read_blocks(block, 1, (void*) buf);
+		return 0;
+}
 
 
-void sfs_fseek(int fileID, int loc){
+int sfs_fseek(int fileID, int loc){
 
 	//MINIMAL IMPLEMENTATION, ADD SOME TYPE OF ERROR CHECKING
 	fdt[fileID].rwptr = loc;

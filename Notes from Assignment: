@@ -41,7 +41,3 @@ sfs_fseek()
 
 sfs_remove()
 	- removes the file from the directory entry, releases the file allocation table entries and releases the data blocks used by the file.
-
-
-
-Notes from Lectures:
