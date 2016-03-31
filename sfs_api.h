@@ -32,6 +32,12 @@ typedef struct {
     uint64_t rwptr;
 } file_descriptor;
 
+typedef struct {
+  char filename[16];
+  char fileext[3];
+  inode_t * inodeptr;
+} directory_entry;
+
 void mksfs(int fresh);
 int sfs_getnextfilename(char *fname);
 int sfs_getfilesize(const char* path);
