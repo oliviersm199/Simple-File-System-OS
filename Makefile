@@ -8,7 +8,7 @@ LDFLAGS = `pkg-config fuse --cflags --libs`
 #SOURCES= disk_emu.c sfs_api.c fuse_wrappers.c sfs_api.h
 
 #TESTING LIST HERE 
-#SOURCES = disk_emu.c sfs_api.c jit_test.c sfs_api.h # TEST 1, Create disk + simple read and write. 
+SOURCES = disk_emu.c sfs_api.c jit_test.c sfs_api.h # TEST 1, Create disk + simple read and write. 
 
 
 OBJECTS=$(SOURCES:.c=.o)
