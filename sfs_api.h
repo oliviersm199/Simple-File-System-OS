@@ -20,6 +20,7 @@
 //root directory definitions
 #define MAX_FILE_NUM NUM_INODES
 
+
 typedef struct {
     uint64_t magic;
     uint64_t block_size;
@@ -35,7 +36,7 @@ typedef struct {
     unsigned int gid;
     unsigned int size;
     unsigned int data_ptrs[12];
-    // TODO indirect pointer
+    struct inode_t* iptr;  
 } inode_t;
 
 /*

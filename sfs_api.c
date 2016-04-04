@@ -29,6 +29,23 @@ void init_bitmap(){
 	bm.rwptr = 0;
 }
 
+void init_rootdir(){
+
+}
+
+
+inode_t* createInode(){
+	inode_t newInode = malloc(sizeof(inode));
+	
+	//find a slot for the inode
+
+	//save the inode in that slot (in memory)
+
+	//save all inodes back (easier than writing one at a time)
+}
+
+
+
 //create the file system
 void mksfs(int fresh){
 	if(fresh){
@@ -55,6 +72,7 @@ void mksfs(int fresh){
 		}
 		write_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
 
+		//initializing the root directory		
 	}
 
 	else{
