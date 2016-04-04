@@ -6,4 +6,5 @@ Simplifications Include:
 - Limited length filenames (Upper Limit of 16)
 - Limited length file extensions (Upper limit of 3)
 - No subdirectories (only a single root directory)
+- Number of files is limited to number of blocks
 - File System is implemented over a disk emulator
