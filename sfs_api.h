@@ -8,17 +8,27 @@
 #define BLOCK_SZ 1024
 #define NUM_BLOCKS 100
 #define NUM_INODES 10
-#define NUM_INODE_BLOCKS (sizeof(inode_t) * NUM_INODES / BLOCK_SZ + 1)
+#define NUM_INODE_BLOCKS (sizeof(inode_table)/ BLOCK_SZ + 1)
+
 
 
 //bitmap definitions
 #define NUM_BITMAP_BLOCKS (sizeof(bitmap)/BLOCK_SZ + 1)
 #define BITMAP_START (NUM_BLOCKS - NUM_BITMAP_BLOCKS)
-#define BLOCK_AVALIABLE 1
-#define BLOCK_OCCUPIED 0  
+#define BLOCK_AVALIABLE '1'
+#define BLOCK_OCCUPIED '0'  
 
 //root directory definitions
-#define MAX_FILE_NUM NUM_INODES
+
+//since we have a limited number of data blocks, we subsequently also have a maximum number of files.
+//The minus 1 is to account for the superblock.
+#define NUM_DATA_BLOCKS (NUM_BLOCKS - NUM_INODE_BLOCKS - NUM_BITMAP_BLOCKS-1)
+#define MAX_FILE_NUM NUM_DATA_BLOCKS
+
+//inode definitions
+#define INODE_IN_USE '1'
+#define INODE_FREE '0'
+#define NUM_DATAPTRS 12
 
 
 typedef struct {
@@ -30,19 +40,18 @@ typedef struct {
 } superblock_t;
 
 typedef struct {
-    unsigned int mode;
-    unsigned int link_cnt;
-    unsigned int uid;
-    unsigned int gid;
+    char inuse;
     unsigned int size;
-    unsigned int data_ptrs[12];
+    unsigned int data_ptrs[NUM_DATAPTRS];
     struct inode_t* iptr;  
 } inode_t;
 
-/*
- * inode    which inode this entry describes
- * rwptr    where in the file to start
- */
+
+typedef struct{ 
+  inode_t index[NUM_INODES];
+  int first_free_inode;
+} inode_table;
+
 typedef struct {
     uint64_t inode;
     uint64_t rwptr;
@@ -59,8 +68,8 @@ typedef struct {
 } root_directory;
 
 typedef struct {
-    uint64_t index[NUM_BLOCKS];
-    uint64_t rwptr; 
+    char index[NUM_BLOCKS];
+    int first_free_block; 
 } bitmap;    
 
 
