@@ -2,8 +2,23 @@
 #define _INCLUDE_SFS_API_H_
 
 #include <stdint.h>
+//base definitions
+#define MAXFILENAME 16
+#define OLIS_DISK "sfs_disk.disk"
+#define BLOCK_SZ 1024
+#define NUM_BLOCKS 100
+#define NUM_INODES 10
+#define NUM_INODE_BLOCKS (sizeof(inode_t) * NUM_INODES / BLOCK_SZ + 1)
 
-#define MAXFILENAME 60
+
+//bitmap definitions
+#define NUM_BITMAP_BLOCKS (sizeof(bitmap)/BLOCK_SZ + 1)
+#define BITMAP_START (NUM_BLOCKS - NUM_BITMAP_BLOCKS)
+#define BLOCK_AVALIABLE 1
+#define BLOCK_OCCUPIED 0  
+
+//root directory definitions
+#define MAX_FILE_NUM NUM_INODES
 
 typedef struct {
     uint64_t magic;
@@ -31,6 +46,24 @@ typedef struct {
     uint64_t inode;
     uint64_t rwptr;
 } file_descriptor;
+
+
+typedef struct {
+    char filename[16];
+    char extension[3];
+    file_descriptor fileptr;
+} file_entry;
+
+typedef struct {
+    file_entry list[MAX_FILE_NUM];
+} root_directory;
+
+typedef struct {
+    uint64_t index[NUM_BLOCKS];
+    uint64_t rwptr; 
+} bitmap;    
+
+
 
 void mksfs(int fresh);
 int sfs_getnextfilename(char *fname);

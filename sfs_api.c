@@ -3,19 +3,12 @@
 
 #include <stdio.h>
 
-int seen = 0;
 
-#define OLIS_DISK "sfs_disk.disk"
-#define BLOCK_SZ 1024
-#define NUM_BLOCKS 100
-#define NUM_INODES 10
-
-
-#define NUM_INODE_BLOCKS (sizeof(inode_t) * NUM_INODES / BLOCK_SZ + 1)
 
 superblock_t sb;
 inode_t table[NUM_INODES];
 file_descriptor fdt[NUM_INODES];
+bitmap bm;
 
 void init_superblock(){
 	sb.magic = 0xACBD0005;
@@ -25,14 +18,38 @@ void init_superblock(){
 	sb.root_dir_inode = 0;
 }
 
+void init_bitmap(){
+	int i;
+	for(i=0;i<NUM_BLOCKS;i++){
+	    bm.index[i] = BLOCK_AVALIABLE;
+	}
+	bm.rwptr = 0;
+}
+
 //create the file system
 void mksfs(int fresh){
 	if(fresh){
 		printf("making new file system\n");
 		init_superblock();
 		init_fresh_disk(OLIS_DISK,BLOCK_SZ,NUM_BLOCKS);
+		init_bitmap();
+
+		//writing the superblock and setting to occupied in the bitmap
 		write_blocks(0,1,&sb);
+		bm.index[0] = BLOCK_OCCUPIED;
+		
+		//writing the inode table and setting to occupied in the bitmap
 		write_blocks(1,sb.inode_table_len,table);
+		for(int i =1;i<sb.inode_table_len+1;i++){
+		  bm.index[i]=BLOCK_OCCUPIED;
+		}
+		
+		//writing bitmap and setting last blocks to the bitmap blocks
+		for(int i =BITMAP_START;i<BITMAP_START+NUM_BITMAP_BLOCKS;i++){
+		  bm.index[i] = BLOCK_OCCUPIED;
+		}
+		write_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
+
 	}
 	else{
 		printf("reopening file system\n");
@@ -45,12 +62,10 @@ void mksfs(int fresh){
 }
 
 int sfs_getnextfilename(char *fname) {
-
 	//Implement sfs_getnextfilename here
 	return 0;
 }
 int sfs_getfilesize(const char* path) {
-
 	//Implement sfs_getfilesize here
 	return 0;
 }
@@ -102,7 +117,6 @@ int sfs_fread(int fileID, char *buf, int length){
 
 
 int sfs_fseek(int fileID, int loc){
-
 	//MINIMAL IMPLEMENTATION, ADD SOME TYPE OF ERROR CHECKING
 	fdt[fileID].rwptr = loc;
 	return 0;
