@@ -11,8 +11,7 @@
 
 int main() {
     mksfs(1);
-    int f = sfs_fopen("some_name.txt");
-    
+    int f = sfs_fopen("some_name.txt");    
     char my_data[] = "The quick brown fox jumps over the lazy dog";
     char out_data[1024];
     sfs_fwrite(f, my_data, sizeof(my_data)+1);

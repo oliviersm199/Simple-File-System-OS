@@ -5,6 +5,9 @@
 
 
 
+#define FREE_BLOCK 1
+#define OCCUPIED_BLOCK 0
+
 superblock_t sb;
 inode_t table[NUM_INODES];
 file_descriptor fdt[NUM_INODES];
@@ -30,6 +33,8 @@ void init_bitmap(){
 void mksfs(int fresh){
 	if(fresh){
 		printf("making new file system\n");
+
+		//initializing the superblock data
 		init_superblock();
 		init_fresh_disk(OLIS_DISK,BLOCK_SZ,NUM_BLOCKS);
 		init_bitmap();
@@ -51,6 +56,7 @@ void mksfs(int fresh){
 		write_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
 
 	}
+
 	else{
 		printf("reopening file system\n");
 		read_blocks(0,1,&sb);
@@ -58,6 +64,7 @@ void mksfs(int fresh){
 		//open inode table
 		read_blocks(1,sb.inode_table_len,table);
 	}
+
 	return;
 }
 
@@ -70,8 +77,7 @@ int sfs_getfilesize(const char* path) {
 	return 0;
 }
 int sfs_fopen(char *name) {
-
-	//Implement sfs_fopen here
+		//Implement sfs_fopen here
 
     /*
      * For now, we only return 1

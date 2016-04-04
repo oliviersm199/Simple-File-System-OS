@@ -47,7 +47,6 @@ typedef struct {
     uint64_t rwptr;
 } file_descriptor;
 
-
 typedef struct {
     char filename[16];
     char extension[3];
