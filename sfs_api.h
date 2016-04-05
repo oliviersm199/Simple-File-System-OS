@@ -2,6 +2,8 @@
 #define _INCLUDE_SFS_API_H_
 
 #include <stdint.h>
+#include <stdlib.h>
+
 //base definitions
 #define MAXFILENAME 16
 #define OLIS_DISK "sfs_disk.disk"
@@ -13,7 +15,8 @@
 
 
 //bitmap definitions
-#define NUM_BITMAP_BLOCKS (sizeof(bitmap)/BLOCK_SZ + 1)
+
+#define NUM_BITMAP_BLOCKS (sizeof(bitmap)/ BLOCK_SZ + 1)
 #define BITMAP_START (NUM_BLOCKS - NUM_BITMAP_BLOCKS)
 #define BLOCK_AVALIABLE '1'
 #define BLOCK_OCCUPIED '0'  
@@ -23,7 +26,7 @@
 //since we have a limited number of data blocks, we subsequently also have a maximum number of files.
 //The minus 1 is to account for the superblock.
 #define NUM_DATA_BLOCKS (NUM_BLOCKS - NUM_INODE_BLOCKS - NUM_BITMAP_BLOCKS-1)
-#define MAX_FILE_NUM NUM_DATA_BLOCKS
+#define MAX_FILE_NUM (NUM_DATA_BLOCKS)
 
 //inode definitions
 #define INODE_IN_USE '1'
@@ -38,6 +41,14 @@ typedef struct {
     uint64_t inode_table_len;
     uint64_t root_dir_inode;
 } superblock_t;
+
+
+typedef struct {
+    char index[NUM_BLOCKS];
+    int first_free_block; 
+} bitmap;    
+
+
 
 typedef struct {
     char inuse;
@@ -57,6 +68,8 @@ typedef struct {
     uint64_t rwptr;
 } file_descriptor;
 
+
+
 typedef struct {
     char filename[16];
     char extension[3];
@@ -65,13 +78,8 @@ typedef struct {
 
 typedef struct {
     file_entry list[MAX_FILE_NUM];
+    int first_free;
 } root_directory;
-
-typedef struct {
-    char index[NUM_BLOCKS];
-    int first_free_block; 
-} bitmap;    
-
 
 
 void mksfs(int fresh);
