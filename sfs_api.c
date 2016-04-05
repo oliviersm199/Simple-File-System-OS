@@ -130,6 +130,55 @@ void init_root(){
     sb.root_dir_inode = create_empty_inode();
 }
 
+void init_directory(){
+    for(int i =0;i<MAX_FILE_NUM;i++){
+        root_dir.list[i].inodeptr=-1;
+	root_dir.file_desc_ptr=-1;
+    }    
+}
+
+
+
+/*returns the index of a file if it exists otherwise returns -1*/
+int file_exists(char * filename){
+    for(int i = 0; i< MAX_FILE_NUM;i++){
+    	char *current_filename = root_dir.list[i].filename;
+	if(strcmp(current_filename,filename)==0){
+            return i;
+	} 
+    }
+    return -1; 
+}
+
+
+//NEED TO IMPLEMENT HARD DISK SAVING OF ROOT DIRECTORY
+int new_file_dir(char *filename,int inodenum){
+    int root_num = root_dir.first_free;
+    for(int i = root_num;i<MAX_FILE_NUM;i++){
+	if(root_dir.list[i].inode_ptr<0){
+	    root_dir.first_free = i;
+	    break;
+	}
+    }
+    if(root_num == root_dir.next_free){
+	printf("Root Directory is full\n");
+	return -1;
+    }
+    strncpy(root_dir.list[i].filename,filename,strlen(filename));
+    root_dir.list[i].inode_ptr = inode_num;
+    return root_num;
+}
+
+int delete_file_dir(int dir_pos){
+    if(dir_pos<0||dir_pos>MAX_FILE_NUM-1) return -1;
+    root_dir.list[i].inode_ptr =-1;
+    root_dir.list[i].file_desc_ptr =-1;
+    root_dir.list[i].filename='\0';
+    return 0; 
+}
+
+
+
 //fdt directory functions
 void init_fdt(){
    f_table.next_free = 0;
@@ -143,7 +192,7 @@ void init_fdt(){
 //trusts that inode num is valid. 
 int new_fd(int inodeNum){
     int new_fdt = f_table.next_free;
-    for(int i = new_fdt;i<f_table.next_free;i++){
+    for(int i = new_fdt;i<MAX_FILE_NUM;i++){
         if(f_table.fdt[i].inode==0){
             f_table.next_free = i;
 	    break;
@@ -160,7 +209,7 @@ int new_fd(int inodeNum){
 
 int remove_fd(int file_ptr){
     if(file_ptr<0 || file_ptr>MAX_FILE_NUM - 1){
-	printf("Invalid index for creating a file descriptor\n");
+	printf("Invalid index for deleting a file descriptor\n");
         return -1;
     }
     f_table.fdt[file_ptr].inode = 0;
@@ -171,7 +220,14 @@ int remove_fd(int file_ptr){
     return 0; 
 }
 
-
+int verify_inode(int inode){
+for(int i =0;i<MAX_FILE_NUM;i++){
+    if(f_table.list[index].inode==inode){
+	return inode;
+    }
+  }
+  return -1;
+}
 
 
 //create the file system
@@ -199,7 +255,7 @@ void mksfs(int fresh){
 	
 	init_root();
 	init_fdt();
-
+        init_directory();
 	}
 	else{
 	    printf("reopening file system\n");
@@ -246,23 +302,40 @@ int validate_filename(char * name){
 
 
 
-int sfs_fopen(char *name) {
-    
+int sfs_fopen(char *name) {  
     //validating filename
     if(!validate_filename(name)){
     	return -1;
     }
     
     //check if file already exists
-    
+    int file_number = file_exists(name);   
+    if(file_number<0){
+	int inode_num = create_empty_inode()
+	if(inode_num<0) return -1
+        int fdt_num = create_fdt();
+	if(fdt_num<0) return -2;
+	f_table.fdt[fdt_num].inode = inode_num
+	f_table.fdt[fdt_num].rwptr = 0;
 
-    //check if file is open in file descriptor table if it is, don't open twice.
+        int file_dir_num = new_file_dir(name,inode_num);
+        if(file_dir_num<0) return -3;
 
-    //allocate inode for file descriptor and file_cache
-    //allocate place in file descriptor
-    //return integer corresponding to inode number 
-
-    return 0;
+        return fdt_num;		
+    }
+    else{
+	int file_inode = root_dir.list[file_number].inode_ptr;
+	int infd = verify_in_fd(inode_ptr);
+        if(infd<0){
+            return -4;
+	}
+        int file_desc = new_fd(file_inode);
+	if(file_desc<0){
+	    return -5;
+	}
+	root_dir.list[file_number].fileptr = file_desc;
+	return file_desc; 	
+    }
 }
 
 

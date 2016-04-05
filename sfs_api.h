@@ -54,7 +54,7 @@ typedef struct {
     char inuse;
     unsigned int size;
     unsigned int data_ptrs[NUM_DATAPTRS];
-    struct inode_t* iptr;  
+    unsigned int indirect_data_block; 
 } inode_t;
 
 
@@ -74,14 +74,14 @@ typedef struct {
 } fdt_table;
 
 typedef struct {
-    char filename[16];
-    char extension[3];
-    file_descriptor fileptr;
+    char filename[20];
+    int inode_ptr;
 } file_entry;
 
 typedef struct {
     file_entry list[MAX_FILE_NUM];
     int first_free;
+    int current_file;
 } root_directory;
 
 
