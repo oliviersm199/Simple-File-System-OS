@@ -25,13 +25,14 @@ typedef struct {
     uint64_t root_dir_inode;
 } superblock_t;
 
+API INSTANCE: sb
 
 typedef struct {
     char index[NUM_BLOCKS];
     int first_free_block;
 } bitmap;
 
-
+API INSTANCE: bm
 
 typedef struct {
     char inuse;
@@ -46,15 +47,23 @@ typedef struct{
   int first_free_inode;
 } inode_table;
 
+API INSTANCE: i_table
+
+
 typedef struct {
     uint64_t inode;
     uint64_t rwptr;
 } file_descriptor;
 
+
+
 typedef struct {
     file_descriptor fdt[MAX_FILE_NUM];
     uint64_t next_free;
 } fdt_table;
+
+API_INSTANCE: f_table
+
 
 typedef struct {
     char filename[20];
