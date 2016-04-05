@@ -68,7 +68,10 @@ typedef struct {
     uint64_t rwptr;
 } file_descriptor;
 
-
+typedef struct {
+    file_descriptor fdt[MAX_FILE_NUM];
+    uint64_t next_free;
+} fdt_table;
 
 typedef struct {
     char filename[16];

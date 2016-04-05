@@ -11,7 +11,7 @@ bitmap bm;
 
 root_directory root_dir;
 
-file_descriptor fdt[MAX_FILE_NUM];
+fdt_table f_table;
 
 void init_superblock(){
     sb.magic = 0xACBD0005;
@@ -115,12 +115,9 @@ int release_inode(int release){
 int create_empty_inode(){
     int inode_index = occupy_inode();
     if(inode_index<0){
-	return NULL;
+	return -1;
     }
     inode_t * newInode = &i_table.index[inode_index];
-    for(int i =0;i<NUM_DATAPTRS;i++){
-	newInode -> data_ptrs[i] = NULL; 
-    }
     newInode -> size = 0;
     write_blocks(1,sb.inode_table_len,&i_table);
     return inode_index;
@@ -133,7 +130,46 @@ void init_root(){
     sb.root_dir_inode = create_empty_inode();
 }
 
+//fdt directory functions
+void init_fdt(){
+   f_table.next_free = 0;
+   for(int i = 0; i< MAX_FILE_NUM;i++){
+       f_table.fdt[i].inode = 0;
+       f_table.fdt[i].rwptr = 0;
+   } 
+}
 
+
+//trusts that inode num is valid. 
+int new_fd(int inodeNum){
+    int new_fdt = f_table.next_free;
+    for(int i = new_fdt;i<f_table.next_free;i++){
+        if(f_table.fdt[i].inode==0){
+            f_table.next_free = i;
+	    break;
+        }
+    }
+    if(f_table.next_free == new_fdt){
+        printf("The file descriptor table is full, can no longer add.\n");
+        return -1;
+    }
+    f_table.fdt[new_fdt].inode = inodeNum; 
+    f_table.fdt[new_fdt].rwptr = 0;
+    return new_fdt; 
+}
+
+int remove_fd(int file_ptr){
+    if(file_ptr<0 || file_ptr>MAX_FILE_NUM - 1){
+	printf("Invalid index for creating a file descriptor\n");
+        return -1;
+    }
+    f_table.fdt[file_ptr].inode = 0;
+    f_table.fdt[file_ptr].rwptr = 0; 
+    if(file_ptr < f_table.next_free){
+        f_table.next_free = file_ptr;
+    }
+    return 0; 
+}
 
 
 
@@ -160,8 +196,10 @@ void mksfs(int fresh){
             bm.index[i] = BLOCK_OCCUPIED;
 	}
 	write_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
-	//initializing the rootdir
+	
 	init_root();
+	init_fdt();
+
 	}
 	else{
 	    printf("reopening file system\n");
@@ -170,6 +208,7 @@ void mksfs(int fresh){
 	    //open inode table
             read_blocks(1,sb.inode_table_len,&i_table);
 	    read_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
+	    init_fdt();
 	}
     return;
 }
@@ -214,7 +253,15 @@ int sfs_fopen(char *name) {
     	return -1;
     }
     
-     
+    //check if file already exists
+    
+
+    //check if file is open in file descriptor table if it is, don't open twice.
+
+    //allocate inode for file descriptor and file_cache
+    //allocate place in file descriptor
+    //return integer corresponding to inode number 
+
     return 0;
 }
 
@@ -222,8 +269,8 @@ int sfs_fopen(char *name) {
 int sfs_fclose(int fileID){
 
 	//Implement sfs_fclose here
-    fdt[0].inode = 0;
-    fdt[0].rwptr = 0;
+    //fdt[0].inode = 0;
+    //fdt[0].rwptr = 0;
     return 0;
 }
 
@@ -255,7 +302,7 @@ int sfs_fread(int fileID, char *buf, int length){
 
 int sfs_fseek(int fileID, int loc){
 	//MINIMAL IMPLEMENTATION, ADD SOME TYPE OF ERROR CHECKING
-	fdt[fileID].rwptr = loc;
+	//fdt[fileID].rwptr = loc;
 	return 0;
 }
 
