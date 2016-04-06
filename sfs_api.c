@@ -141,7 +141,7 @@ void init_directory(){
 /*returns the index of a file if it exists otherwise returns -1*/
 int file_exists(char * filename){
     for(int i = 0; i< MAX_FILE_NUM;i++){
-    	char *current_filename = root_dir.list[i].filename;
+    	char *current_filename = root_dir.list[i].filename;	
 	if(strcmp(current_filename,filename)==0){
             return i;
 	} 
@@ -279,7 +279,6 @@ int sfs_getfilesize(const char* path) {
     return 0;
 }
 
-//sfs_fopen helper functions
 int validate_filename(char * name){
     int str_len = strlen(name);
     if(!str_len){
@@ -343,13 +342,15 @@ int sfs_fopen(char *name) {
     else{
 	int inode_ptr = root_dir.list[file_number].inode_ptr;
         int infd = verify_in_fd(inode_ptr);
-        if(infd<0){
+        if(infd>=0){
             return -4;
 	}
+
         int file_desc = new_fd(inode_ptr);
 	if(file_desc<0){
 	    return -5;
 	}
+
 	return file_desc; 	
     }
 }
