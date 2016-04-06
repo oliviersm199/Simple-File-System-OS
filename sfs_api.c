@@ -311,9 +311,23 @@ void mksfs(int fresh){
 
 int sfs_getnextfilename(char *fname) {
     //Implement sfs_getnextfilename here
-     
+    for(int i =root_dir.next;i<MAX_FILE_NUM;i++){
+	if(!root_dir.list[i].inode_ptr<0){
+	    root_dir.next = i+1;
+	    strcpy(fname,root_dir.list[i].filename);
+            return i;
+        }
+    }
+    //need to find the first avaliable file:
+    for(int i = 0; i < MAX_FILE_NUM; i++){
+        if(!root_dir.list[i].inode<0){
+	    root_dir.next = i;
+	    break;
+	}
+    }
     return 0;
 }
+
 int sfs_getfilesize(const char* path) {
     if(!validate_filename((char *)path)){
         return -1;

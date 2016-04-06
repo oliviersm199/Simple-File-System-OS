@@ -81,8 +81,7 @@ typedef struct {
 typedef struct {
     file_entry list[MAX_FILE_NUM];
     int first_free;
-    int first_file;
-    int last_file;
+    int next; 
 } root_directory;
 
 
