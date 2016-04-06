@@ -132,8 +132,7 @@ void init_root(){
 
 void init_directory(){
     for(int i =0;i<MAX_FILE_NUM;i++){
-        root_dir.list[i].inodeptr=-1;
-	root_dir.file_desc_ptr=-1;
+        root_dir.list[i].inode_ptr=-1;
     }    
 }
 
@@ -152,28 +151,29 @@ int file_exists(char * filename){
 
 
 //NEED TO IMPLEMENT HARD DISK SAVING OF ROOT DIRECTORY
-int new_file_dir(char *filename,int inodenum){
+int new_file_dir(char *filename,int inode_num){
     int root_num = root_dir.first_free;
-    for(int i = root_num;i<MAX_FILE_NUM;i++){
+    root_dir.list[root_num].inode_ptr = inode_num;
+
+    for(int i = root_dir.first_free;i<MAX_FILE_NUM;i++){
 	if(root_dir.list[i].inode_ptr<0){
 	    root_dir.first_free = i;
 	    break;
 	}
     }
-    if(root_num == root_dir.next_free){
+    if(root_num == root_dir.first_free){
 	printf("Root Directory is full\n");
-	return -1;
+	root_dir.list[root_num].inode_ptr = inode_num;
+        return -1;
     }
-    strncpy(root_dir.list[i].filename,filename,strlen(filename));
-    root_dir.list[i].inode_ptr = inode_num;
+    strncpy(root_dir.list[root_num].filename,filename,strlen(filename));
     return root_num;
 }
 
 int delete_file_dir(int dir_pos){
     if(dir_pos<0||dir_pos>MAX_FILE_NUM-1) return -1;
-    root_dir.list[i].inode_ptr =-1;
-    root_dir.list[i].file_desc_ptr =-1;
-    root_dir.list[i].filename='\0';
+    root_dir.list[dir_pos].inode_ptr =-1;
+    strcpy(root_dir.list[dir_pos].filename,"");
     return 0; 
 }
 
@@ -183,23 +183,25 @@ int delete_file_dir(int dir_pos){
 void init_fdt(){
    f_table.next_free = 0;
    for(int i = 0; i< MAX_FILE_NUM;i++){
-       f_table.fdt[i].inode = 0;
+       f_table.fdt[i].inode = -1;
        f_table.fdt[i].rwptr = 0;
    } 
 }
 
-
-//trusts that inode num is valid. 
 int new_fd(int inodeNum){
     int new_fdt = f_table.next_free;
-    for(int i = new_fdt;i<MAX_FILE_NUM;i++){
-        if(f_table.fdt[i].inode==0){
+    f_table.fdt[new_fdt].inode = inodeNum;
+
+    for(int i = f_table.next_free;i<MAX_FILE_NUM;i++){
+	if(f_table.fdt[i].inode < 0){
             f_table.next_free = i;
 	    break;
         }
     }
+
     if(f_table.next_free == new_fdt){
         printf("The file descriptor table is full, can no longer add.\n");
+        f_table.fdt[new_fdt].inode= -1;
         return -1;
     }
     f_table.fdt[new_fdt].inode = inodeNum; 
@@ -220,10 +222,10 @@ int remove_fd(int file_ptr){
     return 0; 
 }
 
-int verify_inode(int inode){
+int verify_in_fd(int inode){
 for(int i =0;i<MAX_FILE_NUM;i++){
-    if(f_table.list[index].inode==inode){
-	return inode;
+    if(f_table.fdt[i].inode==inode){
+	return i;
     }
   }
   return -1;
@@ -260,7 +262,6 @@ void mksfs(int fresh){
 	else{
 	    printf("reopening file system\n");
 	    read_blocks(0,1,&sb);
-	    printf("Block Size is: %lu\n",sb.block_size);
 	    //open inode table
             read_blocks(1,sb.inode_table_len,&i_table);
 	    read_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
@@ -280,26 +281,38 @@ int sfs_getfilesize(const char* path) {
 
 //sfs_fopen helper functions
 int validate_filename(char * name){
-    char delimiter = '.';
+    int str_len = strlen(name);
+    if(!str_len){
+        return 0;
+    }
+
+    //verifying dot position
+    char * dot = strchr(name, '.');
+
+    //scenario if dot exists
+    if(dot == NULL){
+        if(str_len<=20) return 1;
+        return 0;
+    }
+    //getting index by calculating offset of dot ptr and char ptr.
+    int index = dot - name;
     int count = 0;
-    while(count!=strlen(name)|| *(name+count)==delimiter){
-	count++;
+
+    while(count+index<str_len){
+        count++;
     }
-    //empty string case
-    if(count<=0){
-	return 0;
+
+    //checking if characters including dot are proper length
+    if(count > 4){
+        return 0;
     }
-    //filename is too long and there is a . 
-    if(count>16 && strlen(name)!=count){
-	return 0;
-    }
-    //extension is too long
-    if(strlen(name)-count-1 > 3){
-	return 0;
+
+    //checking if strlen is proper.
+    if(strlen(name)-count>16){
+        return 0;
     }
     return 1;
 }
-
 
 
 int sfs_fopen(char *name) {  
@@ -311,11 +324,15 @@ int sfs_fopen(char *name) {
     //check if file already exists
     int file_number = file_exists(name);   
     if(file_number<0){
-	int inode_num = create_empty_inode()
-	if(inode_num<0) return -1
-        int fdt_num = create_fdt();
+        
+        int inode_num = create_empty_inode();
+	
+        if(inode_num<0) return -1;
+        
+        int fdt_num = new_fd(inode_num);
+ 
 	if(fdt_num<0) return -2;
-	f_table.fdt[fdt_num].inode = inode_num
+	f_table.fdt[fdt_num].inode = inode_num;
 	f_table.fdt[fdt_num].rwptr = 0;
 
         int file_dir_num = new_file_dir(name,inode_num);
@@ -324,16 +341,15 @@ int sfs_fopen(char *name) {
         return fdt_num;		
     }
     else{
-	int file_inode = root_dir.list[file_number].inode_ptr;
-	int infd = verify_in_fd(inode_ptr);
+	int inode_ptr = root_dir.list[file_number].inode_ptr;
+        int infd = verify_in_fd(inode_ptr);
         if(infd<0){
             return -4;
 	}
-        int file_desc = new_fd(file_inode);
+        int file_desc = new_fd(inode_ptr);
 	if(file_desc<0){
 	    return -5;
 	}
-	root_dir.list[file_number].fileptr = file_desc;
 	return file_desc; 	
     }
 }

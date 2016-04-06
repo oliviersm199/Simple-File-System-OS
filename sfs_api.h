@@ -35,11 +35,11 @@
 
 
 typedef struct {
-    uint64_t magic;
-    uint64_t block_size;
-    uint64_t fs_size;
-    uint64_t inode_table_len;
-    uint64_t root_dir_inode;
+    int magic;
+    int block_size;
+    int fs_size;
+    int inode_table_len;
+    int root_dir_inode;
 } superblock_t;
 
 
@@ -64,13 +64,13 @@ typedef struct{
 } inode_table;
 
 typedef struct {
-    uint64_t inode;
-    uint64_t rwptr;
+    int inode;
+    int rwptr;
 } file_descriptor;
 
 typedef struct {
     file_descriptor fdt[MAX_FILE_NUM];
-    uint64_t next_free;
+    int next_free;
 } fdt_table;
 
 typedef struct {

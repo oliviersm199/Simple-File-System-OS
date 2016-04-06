@@ -11,5 +11,7 @@
 
 int main() {
     mksfs(1);
+    int result = sfs_fopen("friends.txt");    
+     
     return 0; 
 }
