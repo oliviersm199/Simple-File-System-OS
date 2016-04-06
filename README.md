@@ -18,11 +18,11 @@ Simplifications Include:
 Data Structures in Memory Overview
 
 typedef struct {
-    uint64_t magic;
-    uint64_t block_size;
-    uint64_t fs_size;
-    uint64_t inode_table_len;
-    uint64_t root_dir_inode;
+    int magic;
+    int block_size;
+    int fs_size;
+    int inode_table_len;
+    int root_dir_inode;
 } superblock_t;
 
 API INSTANCE: sb
@@ -41,29 +41,25 @@ typedef struct {
     unsigned int indirect_data_block;
 } inode_t;
 
-
 typedef struct{
   inode_t index[NUM_INODES];
   int first_free_inode;
 } inode_table;
 
-API INSTANCE: i_table
+API_INSTANCE: i_table
 
 
 typedef struct {
-    uint64_t inode;
-    uint64_t rwptr;
+    int inode;
+    int rwptr;
 } file_descriptor;
-
-
 
 typedef struct {
     file_descriptor fdt[MAX_FILE_NUM];
-    uint64_t next_free;
+    int next_free;
 } fdt_table;
 
-API_INSTANCE: f_table
-
+API INSTANCE: f_table
 
 typedef struct {
     char filename[20];
@@ -73,5 +69,8 @@ typedef struct {
 typedef struct {
     file_entry list[MAX_FILE_NUM];
     int first_free;
-    int current_file;
+    int first_file;
+    int last_file;
 } root_directory;
+
+API INSTANCE: root_dir

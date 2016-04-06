@@ -133,7 +133,7 @@ void init_root(){
 void init_directory(){
     for(int i =0;i<MAX_FILE_NUM;i++){
         root_dir.list[i].inode_ptr=-1;
-    }    
+    }   
 }
 
 
@@ -150,15 +150,14 @@ int file_exists(char * filename){
 }
 
 
-//NEED TO IMPLEMENT HARD DISK SAVING OF ROOT DIRECTORY
 int new_file_dir(char *filename,int inode_num){
     int root_num = root_dir.first_free;
     root_dir.list[root_num].inode_ptr = inode_num;
 
     for(int i = root_dir.first_free;i<MAX_FILE_NUM;i++){
 	if(root_dir.list[i].inode_ptr<0){
-	    root_dir.first_free = i;
-	    break;
+	    root_dir.first_free = i; 
+            break;
 	}
     }
     if(root_num == root_dir.first_free){
@@ -312,6 +311,7 @@ void mksfs(int fresh){
 
 int sfs_getnextfilename(char *fname) {
     //Implement sfs_getnextfilename here
+     
     return 0;
 }
 int sfs_getfilesize(const char* path) {
@@ -372,8 +372,7 @@ int sfs_fopen(char *name) {
 
 
 int sfs_fclose(int fileID){
-
-	//Implement sfs_fclose here
+    //Implement sfs_fclose here
     //fdt[0].inode = 0;
     //fdt[0].rwptr = 0;
     return 0;
