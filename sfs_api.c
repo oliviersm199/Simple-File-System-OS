@@ -232,6 +232,46 @@ for(int i =0;i<MAX_FILE_NUM;i++){
 }
 
 
+
+//various helper functions
+int validate_filename(char * name){
+    int str_len = strlen(name);
+    if(!str_len){
+        return 0;
+    }
+
+    //verifying dot position
+    char * dot = strchr(name, '.');
+
+    //scenario if dot exists
+    if(dot == NULL){
+        if(str_len<=20) return 1;
+        return 0;
+    }
+    //getting index by calculating offset of dot ptr and char ptr.
+    int index = dot - name;
+    int count = 0;
+
+    while(count+index<str_len){
+        count++;
+    }
+
+    //checking if characters including dot are proper length
+    if(count > 4){
+        return 0;
+    }
+
+    //checking if strlen is proper.
+    if(strlen(name)-count>16){
+        return 0;
+    }
+    return 1;
+}
+
+
+
+
+
 //create the file system
 void mksfs(int fresh){
     if(fresh){
@@ -275,42 +315,17 @@ int sfs_getnextfilename(char *fname) {
     return 0;
 }
 int sfs_getfilesize(const char* path) {
-    //Implement sfs_getfilesize here
-    return 0;
-}
-
-int validate_filename(char * name){
-    int str_len = strlen(name);
-    if(!str_len){
-        return 0;
+    if(!validate_filename((char *)path)){
+        return -1;
     }
-
-    //verifying dot position
-    char * dot = strchr(name, '.');
-
-    //scenario if dot exists
-    if(dot == NULL){
-        if(str_len<=20) return 1;
-        return 0;
-    }
-    //getting index by calculating offset of dot ptr and char ptr.
-    int index = dot - name;
-    int count = 0;
-
-    while(count+index<str_len){
-        count++;
-    }
-
-    //checking if characters including dot are proper length
-    if(count > 4){
-        return 0;
-    }
-
-    //checking if strlen is proper.
-    if(strlen(name)-count>16){
-        return 0;
-    }
-    return 1;
+    //check if file already exists
+    int file_number = file_exists((char *)path);
+    if(file_number<0){
+	return -2;
+    } 
+    
+    int inode_number = f_table.fdt[file_number].inode;
+    return i_table.index[inode_number].size;
 }
 
 
