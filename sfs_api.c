@@ -415,20 +415,25 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 }
 
 int sfs_fread(int fileID, char *buf, int length){
-	    //Implement sfs_fread here
-	    //file_descriptor* f = &fdt[fileID];
-	    //inode_t* n = i_table.[f->inode];
-
-	    //int block = n->data_ptrs[0];
-	    //read_blocks(block, 1, (void*) buf);
-	    return 0;
+    if(fileID<0 || fileID >= MAX_FILE_NUM){
+        return -1;
+    }
+    int inode = f_table.fdt[fileID].inode;
+    if(inode<0){
+	return -2;
+    }
+    inode_t * n = &i_table.index[inode];
+    int block = n->data_ptrs[0];
+    read_blocks(block, 1, (void*) buf);
+    return 0;
 }
 
 
 int sfs_fseek(int fileID, int loc){
 	//MINIMAL IMPLEMENTATION, ADD SOME TYPE OF ERROR CHECKING
-	//fdt[fileID].rwptr = loc;
-	return 0;
+	f_table.fdt[fileID].wptr = loc;
+        f_table.fdt[fileID].rptr = loc;
+        return 0;
 }
 
 int sfs_remove(char *file){
