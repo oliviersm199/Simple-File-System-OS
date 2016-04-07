@@ -10,12 +10,28 @@ Simplifications Include:
 - File System is implemented over a disk emulator
 
 
+<h2>API Overview</h2>
+
+void mksfs(int fresh); //initializes the file system
+
+int sfs_getnextfilename(char *fname); 
+
+int sfs_getfilesize(const char* path);  
+
+int sfs_fopen(char *name);
+
+int sfs_fclose(int fileID);
+
+int sfs_fwrite(int fileID, const char *buf, int length);
+
+int sfs_fread(int fileID, char *buf, int length);
+
+int sfs_fseek(int fileID, int loc);
+
+int sfs_remove(char *file);
 
 
-
-
-
-Data Structures in Memory Overview
+<h2>Data Structures in Memory Overview</h2>
 
 typedef struct {
     int magic;

@@ -65,7 +65,8 @@ typedef struct{
 
 typedef struct {
     int inode;
-    int rwptr;
+    int wptr;
+    int rptr;
 } file_descriptor;
 
 typedef struct {

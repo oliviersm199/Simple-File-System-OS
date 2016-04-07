@@ -183,7 +183,8 @@ void init_fdt(){
    f_table.next_free = 0;
    for(int i = 0; i< MAX_FILE_NUM;i++){
        f_table.fdt[i].inode = -1;
-       f_table.fdt[i].rwptr = 0;
+       f_table.fdt[i].wptr = 0;
+       f_table.fdt[i].rptr = 0;
    } 
 }
 
@@ -204,7 +205,8 @@ int new_fd(int inodeNum){
         return -1;
     }
     f_table.fdt[new_fdt].inode = inodeNum; 
-    f_table.fdt[new_fdt].rwptr = 0;
+    f_table.fdt[new_fdt].rptr = 0;
+    f_table.fdt[new_fdt].wptr = 0;
     return new_fdt; 
 }
 
@@ -213,8 +215,10 @@ int remove_fd(int file_ptr){
 	printf("Invalid index for deleting a file descriptor\n");
         return -1;
     }
-    f_table.fdt[file_ptr].inode = 0;
-    f_table.fdt[file_ptr].rwptr = 0; 
+    f_table.fdt[file_ptr].inode = -1;
+    f_table.fdt[file_ptr].wptr = 0;
+    f_table.fdt[file_ptr].rptr=0;
+ 
     if(file_ptr < f_table.next_free){
         f_table.next_free = file_ptr;
     }
@@ -310,21 +314,18 @@ void mksfs(int fresh){
 }
 
 int sfs_getnextfilename(char *fname) {
-    //Implement sfs_getnextfilename here
-    for(int i =root_dir.next;i<MAX_FILE_NUM;i++){
-	if(!root_dir.list[i].inode_ptr<0){
-	    root_dir.next = i+1;
-	    strcpy(fname,root_dir.list[i].filename);
-            return i;
+    int count = root_dir.next;
+    for(int i=0;i<MAX_FILE_NUM;i++){
+	if( root_dir.list[i].inode_ptr>=0 && count==0 ){
+            strcpy(fname,root_dir.list[i].filename);
+	    root_dir.next++;
+            return 1;
         }
-    }
-    //need to find the first avaliable file:
-    for(int i = 0; i < MAX_FILE_NUM; i++){
-        if(!root_dir.list[i].inode<0){
-	    root_dir.next = i;
-	    break;
+        else if(root_dir.list[i].inode_ptr>=0){
+	    count--;
 	}
-    }
+    } 
+    root_dir.next = 0; 
     return 0;
 }
 
@@ -344,12 +345,11 @@ int sfs_getfilesize(const char* path) {
 
 
 int sfs_fopen(char *name) {  
-    //validating filename
+    
     if(!validate_filename(name)){
     	return -1;
     }
     
-    //check if file already exists
     int file_number = file_exists(name);   
     if(file_number<0){
         
@@ -361,8 +361,8 @@ int sfs_fopen(char *name) {
  
 	if(fdt_num<0) return -2;
 	f_table.fdt[fdt_num].inode = inode_num;
-	f_table.fdt[fdt_num].rwptr = 0;
-
+	f_table.fdt[fdt_num].rptr = 0;
+	f_table.fdt[fdt_num].wptr = 0;
         int file_dir_num = new_file_dir(name,inode_num);
         if(file_dir_num<0) return -3;
 
@@ -387,28 +387,35 @@ int sfs_fopen(char *name) {
 
 int sfs_fclose(int fileID){
     //Implement sfs_fclose here
-    //fdt[0].inode = 0;
-    //fdt[0].rwptr = 0;
-    return 0;
+    return remove_fd(fileID);
 }
 
 int sfs_fwrite(int fileID, const char *buf, int length){
-	//file_descriptor* f = &fdt[fileID];
-	//inode_t* n = &table[fileID];
-	/*
-	 *We know block 1 is free because this is a canned example.
-	 *You should call a helper function to find a free block.
-	 */
-	//int block = 20;
-	//n -> data_ptrs[0] = block;
-	//n -> size += length;
-	//f -> rwptr += length;
-	//write_blocks(block,1,(void *) buf);
-	return 0;
+	if(fileID<0 || fileID >= MAX_FILE_NUM){
+	    return -1;
+
+        }
+	int inode = f_table.fdt[fileID].inode;
+	if(inode<0){
+	  return -2;
+        }
+	inode_t * n = &i_table.index[inode];
+        file_descriptor * f = &f_table.fdt[fileID];
+
+	int block = occupy_block();
+	
+        if(block < 0){
+	    return -3;
+	}
+	n -> data_ptrs[0] = block;
+	n -> size += length;
+	f -> wptr += length;
+	write_blocks(block,1,(void *)buf);
+	return length;
 }
 
 int sfs_fread(int fileID, char *buf, int length){
-			//Implement sfs_fread here
+	    //Implement sfs_fread here
 	    //file_descriptor* f = &fdt[fileID];
 	    //inode_t* n = i_table.[f->inode];
 
