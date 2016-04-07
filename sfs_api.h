@@ -5,11 +5,11 @@
 #include <stdlib.h>
 
 //base definitions
-#define MAXFILENAME 16
+#define MAXFILENAME 20
 #define OLIS_DISK "sfs_disk.disk"
 #define BLOCK_SZ 1024
-#define NUM_BLOCKS 100
-#define NUM_INODES 10
+#define NUM_BLOCKS 250
+#define NUM_INODES 50
 #define NUM_INODE_BLOCKS (sizeof(inode_table)/ BLOCK_SZ + 1)
 
 
@@ -22,11 +22,12 @@
 #define BLOCK_OCCUPIED '0'  
 
 //root directory definitions
-
 //since we have a limited number of data blocks, we subsequently also have a maximum number of files.
 //The minus 1 is to account for the superblock.
 #define NUM_DATA_BLOCKS (NUM_BLOCKS - NUM_INODE_BLOCKS - NUM_BITMAP_BLOCKS-1)
-#define MAX_FILE_NUM (NUM_DATA_BLOCKS)
+
+//DEFINING THE MAX FILE SIZE
+#define MAX_FILE_NUM (NUM_DATA_BLOCKS < NUM_INODES) ? NUM_DATA_BLOCKS:NUM_INODES
 
 //inode definitions
 #define INODE_IN_USE '1'
@@ -53,6 +54,7 @@ typedef struct {
 typedef struct {
     char inuse;
     unsigned int size;
+    unsigned int data_ptrs_used;
     unsigned int data_ptrs[NUM_DATAPTRS];
     unsigned int indirect_data_block; 
 } inode_t;
