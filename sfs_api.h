@@ -32,8 +32,8 @@
 //inode definitions
 #define INODE_IN_USE '1'
 #define INODE_FREE '0'
-#define NUM_DATAPTRS 12
-
+#define DIRECT_PTRS 12
+#define MAX_DATA_PTRS (DIRECT_PTRS + BLOCK_SZ/4) 
 
 typedef struct {
     int magic;
@@ -54,9 +54,9 @@ typedef struct {
 typedef struct {
     char inuse;
     unsigned int size;
-    unsigned int data_ptrs_used;
-    unsigned int data_ptrs[NUM_DATAPTRS];
-    unsigned int indirect_data_block; 
+    unsigned int ptrs_used;
+    unsigned int data_ptrs[DIRECT_PTRS];
+    unsigned int indirect_ptr; 
 } inode_t;
 
 
