@@ -53,10 +53,10 @@ typedef struct {
 
 typedef struct {
     char inuse;
-    unsigned int size;
-    unsigned int ptrs_used;
-    unsigned int data_ptrs[DIRECT_PTRS];
-    unsigned int indirect_ptr; 
+    int size;
+    int ptrs_used;
+    int data_ptrs[DIRECT_PTRS];
+    int indirect_ptr; 
 } inode_t;
 
 
