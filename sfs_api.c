@@ -30,7 +30,7 @@ void init_superblock(){
     sb.root_dir_inode = 0;
 }
 
-//saving functionalities
+//saving functionalitie
 void save_superblock_table(int sb_block){
     write_blocks(sb_block,1,&sb);
 }
@@ -126,7 +126,6 @@ int get_block_assignments(inode_t * i_ptr,int blocks_needed){
     if(max_index > MAX_DATA_PTRS){
 	return -1;	
     }
-    printf("The number of blocks I need %d\n",blocks_needed);
     //try to assign the number of new blocks that are needed. 
     //if not possible, release all the blocks that we allocated and return -2.
     int blocks_assigned[blocks_needed]; 
@@ -207,6 +206,8 @@ int release_inode(int release){
     if(i_table.index[release].inuse==INODE_IN_USE){
       	i_table.index[release].inuse = INODE_FREE;
         if(i_table.first_free_inode> release) i_table.first_free_inode = release;
+	    i_table.index[release].size = 0;
+	    i_table.index[release].ptrs_used=0;
 	    save_inode_table();
 	    return 0;    
     	}
@@ -217,6 +218,48 @@ int release_inode(int release){
     }
     printf("Invalid index for inode");
     return -2;
+}
+
+int release_inode_blocks(int inodeNum){
+    //first validating that it is a valid inodeNum
+    if(inodeNum<0 || inodeNum > i_table_size-1){
+	return -1;
+    }	
+
+    //checking if it is in use otherwise why would i free?
+    if(i_table.index[inodeNum].inuse == INODE_FREE){
+	return -2;
+    }
+    inode_t *  i_ptr = &i_table.index[inodeNum];
+    
+    int ptrs_used = i_ptr -> ptrs_used;
+    for(int i =0;i<DIRECT_PTRS && ptrs_used>0;i++){
+	release_block(i_ptr -> data_ptrs[i]);
+	ptrs_used--;	
+    }
+   
+    if(ptrs_used < 0){
+	return 0;
+    }
+    
+    //we have to load the dataptrs from the indirect block and release them one at a time and then free this block
+    if(i_ptr -> indirect_ptr < 0){
+	return -3;
+    }
+    int temp_inode_array[MAX_DATA_PTRS-DIRECT_PTRS];
+    read_blocks(i_ptr->indirect_ptr,1,temp_inode_array);
+    int i = 0;
+    while(ptrs_used>0&&i<MAX_DATA_PTRS-DIRECT_PTRS){
+	if(temp_inode_array[i]>0){
+	   release_block(temp_inode_array[i]); 
+        }
+	ptrs_used--;
+        i++;
+    }
+    release_block(i_ptr -> indirect_ptr);
+    i_ptr -> indirect_ptr = 0;
+    save_inode_table();
+    return 1;
 }
 
 //root directory functions
@@ -278,6 +321,11 @@ int delete_file_dir(int dir_pos){
     if(dir_pos<0||dir_pos>dir_size-1) return -1;
     root_dir.list[dir_pos].inode_ptr =-1;
     strcpy(root_dir.list[dir_pos].filename,"");
+    
+    if(dir_pos<root_dir.first_free){
+    	root_dir.first_free = dir_pos;
+    }
+
     save_root();
     return 0; 
 }
@@ -308,6 +356,9 @@ int remove_fd(int file_ptr){
     if(file_ptr<0 || file_ptr>fdt_size - 1){
 	printf("Invalid index for deleting a file descriptor\n");
         return -1;
+    }
+    if(f_table.fdt[file_ptr].inode<0){
+	return -2;
     }
     f_table.fdt[file_ptr].inode = -1;
     f_table.fdt[file_ptr].wptr = 0;
@@ -567,15 +618,10 @@ int sfs_fread(int fileID, char *buf, int length){
     int i =rptr_start_block;
     char temp_buffer[BLOCK_SZ];
     int read = 0;
-    printf("Rptr Start Block %d\n",rptr_start_block);
-    printf("Rptr blocks read %d\n",rptr_blocks_read);
-    printf("End block %d\n",end_block);
     while(n->data_ptrs[i]>=0 && i<end_block && length > 0){
         int block = n->data_ptrs[i];
-	printf("Reading from block %d\n",block);
         read_blocks(block,1,(void*)temp_buffer);
         int to_read = ((length+ f->rptr)>BLOCK_SZ) ? BLOCK_SZ - (f->rptr%BLOCK_SZ):length;
-	printf("To Read:%d\n",to_read);
         if(to_read > (n -> size)){
             to_read = n -> size;
 	    length = 0;
@@ -608,5 +654,33 @@ int sfs_fseek(int fileID, int loc){
 
 int sfs_remove(char *file){
 	//implement sfs_remove here
-	return 0;
+	if(!validate_filename(file)){
+        	return -1;
+	}
+
+	int file_number = file_exists(file); 
+	if(file_number<0){
+	    return -2;
+	}
+	
+	int inode_val = root_dir.list[file_number].inode_ptr;
+	int delete_dir_r = delete_file_dir(file_number);
+	if(delete_dir_r<0){
+	    printf("Error deleting root directory\n");
+	    return -3;
+	}
+	
+	//take care of deleting any open file descriptors	
+        int fd_pos = verify_in_fd(inode_val);
+	if(fd_pos>0){
+	    remove_fd(fd_pos);
+	}
+
+	//free the blocks in the inode
+	release_inode_blocks(inode_val);
+	
+        //release the inode
+	release_inode(inode_val);
+	
+        return file_number;
 }
