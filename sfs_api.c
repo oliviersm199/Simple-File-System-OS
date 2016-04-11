@@ -108,11 +108,9 @@ int release_block(int release){
             return 0;
 	}
 	else{
-	    printf("Releasing block that has not been allocated\n");
 	    return -1;
 	}
     }
-    printf("Releasing block that is out of range\n");
     return -2;
 }
 
@@ -205,7 +203,6 @@ int occupy_inode(){
 int create_empty_inode(){
     int inode_index = occupy_inode();
     if(inode_index<0){
-	printf("No free inode\n");
 	return -1;
     }
     inode_t * newInode = &i_table.index[inode_index];
@@ -225,11 +222,9 @@ int release_inode(int release){
 	    return 0;    
     	}
         else{
-            printf("Trying to release unused iNode\n");
             return -1;
         }
     }
-    printf("Invalid index for inode");
     return -2;
 }
 
@@ -248,6 +243,7 @@ int release_inode_blocks(int inodeNum){
     int ptrs_used = i_ptr -> ptrs_used;
     for(int i =0;i<DIRECT_PTRS && ptrs_used>0;i++){
 	release_block(i_ptr -> data_ptrs[i]);
+	i_ptr -> data_ptrs[i] = 0;
 	ptrs_used--;	
     }
    
@@ -321,7 +317,6 @@ int new_file_dir(char *filename,int inode_num){
 	}
     }
     if(root_num == root_dir.first_free){
-	printf("Root Directory is full\n");
 	root_dir.list[root_num].inode_ptr = inode_num;
         return -1;
     }
@@ -355,7 +350,6 @@ int new_fd(int inodeNum){
         }
     }
     if(f_table.next_free == new_fdt){
-        printf("The file descriptor table is full, can no longer add.\n");
         f_table.fdt[new_fdt].inode= -1;
         return -1;
     }
@@ -367,7 +361,6 @@ int new_fd(int inodeNum){
 
 int remove_fd(int file_ptr){
     if(file_ptr<0 || file_ptr>fdt_size - 1){
-	printf("Invalid index for deleting a file descriptor\n");
         return -1;
     }
     if(f_table.fdt[file_ptr].inode<0){
@@ -430,38 +423,10 @@ int validate_filename(char * name){
 }
 
 
-int print_inode_table(){
-    fprintf(stderr,"\n\n");
-    for(int i=0;i<i_table_size;i++){
-        if(i_table.index[i].inuse==INODE_IN_USE){
-                    inode_t * i_ptr = &i_table.index[i];
-                    fprintf(stderr,"Inode Number:%d\n",i);
-                    fprintf(stderr,"\tSize:%d\n",i_ptr->size);
-                    fprintf(stderr,"\tPtrs Used:%d\n",i_ptr->ptrs_used);
-                    for(int j=0;i_ptr->data_ptrs[j]>0;j++){
-                        fprintf(stderr,"\tData Ptr:%d\tData Block %d\n",j,i_ptr->data_ptrs[j]);
-                    }
-                }
-            }
-    fprintf(stderr,"\n\n");
-    return 1;
-}
-int print_root_table(){
-     fprintf(stderr,"\n\n");
-     for(int i =0;i<dir_size;i++){
-	if(root_dir.list[i].inode_ptr>0){
-           fprintf(stderr,"Index: %dFilename:%s\n" ,i,root_dir.list[i].filename);
-        }
-     }
-     fprintf(stderr,"\n\n");
-     return 1;
-}
-
 //create the file system
 void mksfs(int fresh){
     if(fresh){
-	printf("Making new file system\n");
-        //initializing the superblock data
+	//initializing the superblock data
 	init_superblock();
 	init_fresh_disk(OLIS_DISK,BLOCK_SZ,NUM_BLOCKS);
 	init_inode_table();
@@ -485,21 +450,15 @@ void mksfs(int fresh){
 	else{
 	    printf("reopening file system\n");
 	    int disk_result = init_disk(OLIS_DISK,BLOCK_SZ,NUM_BLOCKS);
-	    
 	    if(disk_result<0) return;
-	    
 	    read_blocks(0,1,&sb);
-	    
-            read_blocks(1,sb.inode_table_len,&i_table);
+	    read_blocks(1,sb.inode_table_len,&i_table);
 	    inode_t * i_ptr = &i_table.index[sb.root_dir_inode];
 	    int start_block = i_ptr -> data_ptrs[0];
 	    int num_blocks = sizeof(root_dir)/BLOCK_SZ + 1;
-
 	    read_blocks(start_block,num_blocks,&root_dir); 
-	    
 	    read_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
-	    
-            init_fdt();
+	    init_fdt();
 	}
     return;
 }
@@ -542,7 +501,10 @@ int sfs_fopen(char *name) {
     int file_number = file_exists(name);
     if(file_number<0){
         int inode_num = create_empty_inode();
-        if(inode_num<0) return -1;
+        if(inode_num<0){
+		//printf("File not created: %s\n",name);
+		return -1;
+	}
         int fdt_num = new_fd(inode_num);
 	if(fdt_num<0) return -2;
 	f_table.fdt[fdt_num].inode = inode_num;
@@ -667,6 +629,7 @@ int sfs_fseek(int fileID, int loc){
 
 int sfs_remove(char *file){
 	//implement sfs_remove here
+	printf("Remove called\n");
 	if(!validate_filename(file)){
         	return -1;
 	}

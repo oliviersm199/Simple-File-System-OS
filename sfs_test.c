@@ -282,7 +282,6 @@ main(int argc, char **argv)
       error_count++;
     }
   }
-
   /* Now we try to re-initialize the system.
    */
   mksfs(0);
