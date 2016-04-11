@@ -6,18 +6,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <time.h>
 #include "sfs_api.h"
 
 int main() {
     mksfs(1);
-    int vals[2];
-    vals[0] = sfs_fopen("myname.txt");
-    int tmp = sfs_fopen("myname.txt");
-    if(vals[0]==vals[1]){
-	printf("Hurray\n");
-    }else{
-	printf("Woops\n");
+    int sfs_open = sfs_fopen("new_file.txt");
+    int blocksize = 14*BLOCK_SZ;
+    char buffer[blocksize];
+    printf("Writing %d bytes\n",blocksize);
+    for(int i = 0 ; i<blocksize;i++){
+	buffer[i]='A' + (random() %26); 
     }
-
+    int result = sfs_fwrite(sfs_open,buffer,blocksize);
+    printf("Result:%d\n",result);
+    return 0;
 }

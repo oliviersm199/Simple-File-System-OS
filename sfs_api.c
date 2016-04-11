@@ -89,7 +89,6 @@ int occupy_block(){
 	}
     }
     if(return_value == bm.first_free_block){
-	printf("No room in memory\n");
 	return -1; 
     }
     bm.index[return_value] = BLOCK_OCCUPIED;
@@ -122,6 +121,8 @@ int get_block_assignments(inode_t * i_ptr,int blocks_needed){
     int ptrs_used = i_ptr -> ptrs_used;
     int max_index = ptrs_used + blocks_needed;
     int indirect_used = (ptrs_used-DIRECT_PTRS<=0) ? 0: ptrs_used - DIRECT_PTRS;
+    
+
     //if we need more pointers than we can support, return -1.
     if(max_index > MAX_DATA_PTRS){
 	return -1;	
@@ -131,47 +132,59 @@ int get_block_assignments(inode_t * i_ptr,int blocks_needed){
     int blocks_assigned[blocks_needed]; 
     for(int i =0; i< blocks_needed;i++){
 	blocks_assigned[i] = occupy_block();
-	if(blocks_assigned[i]<0){
+        if(blocks_assigned[i]<0){
 	    for(int j=0;j<=i;j++){
-		release_block(blocks_assigned[i]);
+		if(blocks_assigned[i]>0){
+                    release_block(blocks_assigned[i]);
+		}
 	    }
 	    return -2;
 	}
-    }
-
-	
+    }	
     //j is the index for the dataptrs we acquired.
     int j = 0; 
     for(int i = ptrs_used;i<max_index;i++){
-	if(i<MAX_DATA_PTRS-1){
+	if(i<DIRECT_PTRS){
 	    i_ptr -> data_ptrs[i]=blocks_assigned[j];
 	    j++;
         }
         else{
-	    if(i_ptr -> indirect_ptr<0){
+	    if(i_ptr -> indirect_ptr<=0){
 		i_ptr -> indirect_ptr = occupy_block();
 		if(i_ptr -> indirect_ptr < 0){
 		    for(int q = 0;q<blocks_needed;q++){
-			release_block(blocks_assigned[q]);
+			if(blocks_assigned[i]>0){
+			    release_block(blocks_assigned[q]);
+			}
 		    }
 		    return -3;
 		}	
 	    }
 	    int temp_inode_array[MAX_DATA_PTRS-DIRECT_PTRS];
 	    read_blocks(i_ptr->indirect_ptr,1,temp_inode_array);
-	    while(j<blocks_needed){
-		temp_inode_array[indirect_used+j] = blocks_assigned[j];
+	    int q = 0;
+	    while(i<max_index){
+		temp_inode_array[indirect_used+q] = blocks_assigned[j];
+		i++;
 		j++;
+		q++;
 	    }
             write_blocks(i_ptr -> indirect_ptr,1,temp_inode_array);
-	    break;
         }
     }
     i_ptr -> ptrs_used += blocks_needed;
     save_inode_table();
     return 0;      
 }
-
+int get_block_index(inode_t * inodePtr,int index){
+    if(index < DIRECT_PTRS){
+	 return inodePtr -> data_ptrs[index]; 
+    }
+    index = index - DIRECT_PTRS;
+    int temp_inode_array[MAX_DATA_PTRS-DIRECT_PTRS];
+    read_blocks(inodePtr -> indirect_ptr,1,temp_inode_array);
+    return temp_inode_array[index];
+}
 
 //inode functionalities
 int occupy_inode(){
@@ -347,8 +360,8 @@ int new_fd(int inodeNum){
         return -1;
     }
     f_table.fdt[new_fdt].inode = inodeNum; 
-    f_table.fdt[new_fdt].rptr = 0;
     f_table.fdt[new_fdt].wptr = 0;
+    f_table.fdt[new_fdt].rptr = 0;
     return new_fdt; 
 }
 
@@ -362,7 +375,7 @@ int remove_fd(int file_ptr){
     }
     f_table.fdt[file_ptr].inode = -1;
     f_table.fdt[file_ptr].wptr = 0;
-    f_table.fdt[file_ptr].rptr=0;
+    f_table.fdt[file_ptr].rptr = 0;
  
     if(file_ptr < f_table.next_free){
         f_table.next_free = file_ptr;
@@ -477,17 +490,13 @@ void mksfs(int fresh){
 	    
 	    read_blocks(0,1,&sb);
 	    
+            read_blocks(1,sb.inode_table_len,&i_table);
 	    inode_t * i_ptr = &i_table.index[sb.root_dir_inode];
 	    int start_block = i_ptr -> data_ptrs[0];
 	    int num_blocks = sizeof(root_dir)/BLOCK_SZ + 1;
-            
-	    printf("Start block %d\n",start_block);
-	    printf("Root Dir Inode%d\n",sb.root_dir_inode);
-	    printf("Num blocks:%d\n",num_blocks);
 
 	    read_blocks(start_block,num_blocks,&root_dir); 
 	    
-            read_blocks(1,sb.inode_table_len,&i_table);
 	    read_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
 	    
             init_fdt();
@@ -495,7 +504,7 @@ void mksfs(int fresh){
     return;
 }
 
-int sfs_getnextfilename(char *fname) {
+int sfs_get_next_filename(char *fname) {
     int count = root_dir.next;
     for(int i=0;i<dir_size;i++){
 	if( root_dir.list[i].inode_ptr>=0 && count==0 ){
@@ -511,7 +520,7 @@ int sfs_getnextfilename(char *fname) {
     return 0;
 }
 
-int sfs_getfilesize(const char* path) {
+int sfs_GetFileSize(const char* path) {
     if(!validate_filename((char *)path)){
         return -1;
     }
@@ -537,8 +546,8 @@ int sfs_fopen(char *name) {
         int fdt_num = new_fd(inode_num);
 	if(fdt_num<0) return -2;
 	f_table.fdt[fdt_num].inode = inode_num;
-	f_table.fdt[fdt_num].rptr = 0;
 	f_table.fdt[fdt_num].wptr = 0;
+	f_table.fdt[fdt_num].rptr = 0;
         int file_dir_num = new_file_dir(name,inode_num);
         if(file_dir_num<0) return -3;
         return fdt_num;		
@@ -574,28 +583,35 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         }
 	inode_t * n = &i_table.index[inode];
         file_descriptor * f = &f_table.fdt[fileID];
-	int blocks_used = n-> ptrs_used; 
-        int wptr_start_block = f -> wptr/BLOCK_SZ;
-	int blocks_writing = length/BLOCK_SZ+1;
-	int blocks_needed = (blocks_writing-blocks_used)+wptr_start_block;
+        int filesize = n -> size;
+	int blocks_used = (filesize==0) ? 0:filesize/BLOCK_SZ + 1; 
+	int blocks_max = (f -> wptr + length)/BLOCK_SZ+1;
+        int blocks_needed = blocks_max - blocks_used;		
+	
         if(get_block_assignments(n,blocks_needed)<0){
 	    return -3; 
         }
+	int start_block = (f -> wptr)/BLOCK_SZ;
+	int end_block = blocks_max;	
 	int buf_written = 0;
         int to_write = length;
 	char temp_buffer[BLOCK_SZ];
-        for(int i =wptr_start_block;i<blocks_writing + wptr_start_block;i++){
+ 
+       for(int i =start_block;i<end_block;i++){
 	    int write_start = (f -> wptr%BLOCK_SZ);
-            int block = n -> data_ptrs[i];
+            int block = get_block_index(n,i);
 	    read_blocks(block,1,(void*)temp_buffer);
-            int write_amount = (to_write<BLOCK_SZ-write_start) ? to_write:BLOCK_SZ-write_start;
+            int w_amount = BLOCK_SZ - write_start;
+	    if(to_write<w_amount){
+		w_amount = to_write;
+	    }
 	    char * temp_buf = (temp_buffer + write_start);
 	    const char * buf_res = (buf + buf_written);
-            strncpy(temp_buf,buf_res,write_amount); 
-	    buf_written += write_amount;
-            n -> size += (write_amount);
-	    f -> wptr += (write_amount);
-            to_write -= write_amount;
+            memcpy(temp_buf,buf_res,w_amount); 
+	    buf_written += w_amount;
+            n -> size += (w_amount);
+	    f -> wptr += (w_amount);
+            to_write -= w_amount;
 	    write_blocks(block,1,(void *)temp_buffer);
 	}
 	save_inode_table();
@@ -612,28 +628,24 @@ int sfs_fread(int fileID, char *buf, int length){
     }
     file_descriptor * f = &f_table.fdt[fileID];
     inode_t * n = &i_table.index[inode];
-    
-    int rptr_start_block = f ->rptr/BLOCK_SZ;
-    int rptr_blocks_read = length/BLOCK_SZ+1;
-    int end_block = rptr_start_block +rptr_blocks_read; 
-    int i =rptr_start_block;
-    char temp_buffer[BLOCK_SZ];
     int read = 0;
-    while(n->data_ptrs[i]>=0 && i<end_block && length > 0){
-        int block = n->data_ptrs[i];
-        read_blocks(block,1,(void*)temp_buffer);
-        int to_read = ((length+ f->rptr)>BLOCK_SZ) ? BLOCK_SZ - (f->rptr%BLOCK_SZ):length;
-        if(to_read > (n -> size)){
-            to_read = n -> size;
-	    length = 0;
+    int to_read = ((f->rptr+ length) > n -> size) ? (n ->size)-(f->rptr): length; 
+    char page_buffer[BLOCK_SZ];
+    int start_block = f ->rptr/BLOCK_SZ;
+    int end_block = (f ->rptr + to_read)/BLOCK_SZ+1;
+    for(int i = start_block;i<end_block;i++){
+	int rptr_start = (f -> rptr) % BLOCK_SZ;
+        int block_read_amount = BLOCK_SZ - rptr_start;
+	if(block_read_amount>to_read){
+ 	    block_read_amount = to_read;
         }
-        int start_ptr = f->rptr % BLOCK_SZ;
-        strncpy(buf+read,(temp_buffer+start_ptr),to_read);
-        f->rptr += to_read;
-	read += to_read;
-	length -= to_read; 
-        i++;
-    }
+        int block = get_block_index(n,i); 
+    	read_blocks(block,1,page_buffer);
+	memcpy(buf+read,page_buffer+rptr_start,block_read_amount);
+	read += block_read_amount;
+	f -> rptr += block_read_amount;
+	to_read-=block_read_amount;
+    } 
     return read;
 }
 

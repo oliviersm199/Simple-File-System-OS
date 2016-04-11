@@ -81,16 +81,37 @@ main(int argc, char **argv)
 
   /* First we open two files and attempt to write data to them.
    */
+  {
+  char fname[MAX_FNAME_LENGTH+10];
+  int i;
+
+  for (i = 0; i < MAX_FNAME_LENGTH+10; i++) {
+    if (i != 8) {
+      fname[i] = 'A' + (rand() % 26);
+    }
+    else {
+      fname[i] = '.';
+    }
+  }
+  fname[i] = '\0';
+
+  int derp = sfs_fopen(fname);
+  if (derp >= 0) {
+    fprintf(stderr, "ERROR: creating file with too long name\n");
+    error_count++;
+  }
+  }
+
   for (i = 0; i < 2; i++) {
     names[i] = rand_name();
     fds[i] = sfs_fopen(names[i]);
     if (fds[i] < 0) {
+      fprintf(stderr, "ERROR: creating first test file %s\n", names[i]);
       error_count++;
     }
     tmp = sfs_fopen(names[i]);
     if (tmp >= 0 && tmp != fds[i]) {
       fprintf(stderr, "ERROR: file %s was opened twice\n", names[i]);
-      fprintf(stderr,"Tmp:%d\tnames[i]%d\n",tmp,fds[i]);
       error_count++;
     }
     filesize[i] = (rand() % (MAX_BYTES-MIN_BYTES)) + MIN_BYTES;
@@ -129,6 +150,11 @@ main(int argc, char **argv)
         error_count++;
       }
       free(buffer);
+    }
+    int tmp = sfs_GetFileSize(names[i]);
+    if (filesize[i] != tmp) {
+      fprintf(stderr, "ERROR: mismatch file size %d, %d\n", filesize[i], tmp);
+      error_count++;
     }
   }
 
@@ -205,6 +231,8 @@ main(int argc, char **argv)
     }
   }
 
+  sfs_remove(names[0]);
+  sfs_remove(names[1]);
   /* Now just try to open up a bunch of files.
    */
   ncreate = 0;
@@ -282,6 +310,7 @@ main(int argc, char **argv)
       error_count++;
     }
   }
+
   /* Now we try to re-initialize the system.
    */
   mksfs(0);
@@ -346,6 +375,17 @@ main(int argc, char **argv)
     fprintf(stderr, "ERROR: re-opening file %s\n", names[0]);
   }
 
+  printf("Directory listing\n");
+  char *filename = (char *)malloc(MAXFILENAME);
+  int max = 0;
+  while (sfs_get_next_filename(filename)) {
+	  if (strcmp(filename, names[max]) != 0) {
+	  	printf("ERROR misnamed file %d: %s %s\n", max, filename, names[max]);
+		error_count++;
+	  }
+	  max++;
+  }
+ 
   /* Now, having filled up the disk, try one more time to read the
    * contents of the files we created.
    */
@@ -375,7 +415,15 @@ main(int argc, char **argv)
     }
   }
 
+  for (i = 0; i < max; i++) {
+	  sfs_remove(names[i]);
+  }
+
+  if (sfs_get_next_filename(filename)) {
+	  fprintf(stderr, "ERROR: should be empty dir\n");
+	  error_count++;
+  }
+ 
   fprintf(stderr, "Test program exiting with %d errors\n", error_count);
   return (error_count);
 }
-

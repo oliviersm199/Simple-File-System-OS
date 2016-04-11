@@ -26,14 +26,17 @@
 //The minus 1 is to account for the superblock.
 #define NUM_DATA_BLOCKS (NUM_BLOCKS - NUM_INODE_BLOCKS - NUM_BITMAP_BLOCKS-1)
 
-//DEFINING THE MAX FILE SIZE
-#define MAX_FILE_NUM (NUM_DATA_BLOCKS < NUM_INODES) ? NUM_DATA_BLOCKS:NUM_INODES
+
 
 //inode definitions
 #define INODE_IN_USE '1'
 #define INODE_FREE '0'
 #define DIRECT_PTRS 12
 #define MAX_DATA_PTRS (DIRECT_PTRS + BLOCK_SZ/4) 
+
+//DEFINING THE MAX FILE SETTINGS
+#define MAX_FILE_NUM (NUM_DATA_BLOCKS < NUM_INODES) ? NUM_DATA_BLOCKS:NUM_INODES
+#define MAX_FILE_SIZE (MAX_DATA_PTRS*BLOCK_SZ)
 
 typedef struct {
     int magic;
@@ -67,8 +70,8 @@ typedef struct{
 
 typedef struct {
     int inode;
-    int wptr;
     int rptr;
+    int wptr;
 } file_descriptor;
 
 typedef struct {
