@@ -9,7 +9,7 @@
 #define OLIS_DISK "sfs_disk.disk"
 #define BLOCK_SZ 1024
 #define NUM_BLOCKS 250
-#define NUM_INODES 50
+#define NUM_INODES 100 
 #define NUM_INODE_BLOCKS (sizeof(inode_table)/ BLOCK_SZ + 1)
 
 
@@ -77,7 +77,7 @@ typedef struct {
 } fdt_table;
 
 typedef struct {
-    char filename[20];
+    char filename[21];
     int inode_ptr;
 } file_entry;
 

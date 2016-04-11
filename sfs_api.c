@@ -290,7 +290,7 @@ int file_exists(char * filename){
     for(int i = 0; i< dir_size;i++){
     	char *current_filename = root_dir.list[i].filename;	
 	if(strcmp(current_filename,filename)==0){
-            return i;
+	    return i;
 	} 
     }
     return -1; 
@@ -418,22 +418,31 @@ int validate_filename(char * name){
 
 
 int print_inode_table(){
-    printf("\n\n");
+    fprintf(stderr,"\n\n");
     for(int i=0;i<i_table_size;i++){
         if(i_table.index[i].inuse==INODE_IN_USE){
                     inode_t * i_ptr = &i_table.index[i];
-                    printf("Inode Number:%d\n",i);
-                    printf("\tSize:%d\n",i_ptr->size);
-                    printf("\tPtrs Used:%d\n",i_ptr->ptrs_used);
+                    fprintf(stderr,"Inode Number:%d\n",i);
+                    fprintf(stderr,"\tSize:%d\n",i_ptr->size);
+                    fprintf(stderr,"\tPtrs Used:%d\n",i_ptr->ptrs_used);
                     for(int j=0;i_ptr->data_ptrs[j]>0;j++){
-                        printf("\tData Ptr:%d\tData Block %d\n",j,i_ptr->data_ptrs[j]);
+                        fprintf(stderr,"\tData Ptr:%d\tData Block %d\n",j,i_ptr->data_ptrs[j]);
                     }
                 }
             }
-    printf("\n\n");
+    fprintf(stderr,"\n\n");
     return 1;
 }
-
+int print_root_table(){
+     fprintf(stderr,"\n\n");
+     for(int i =0;i<dir_size;i++){
+	if(root_dir.list[i].inode_ptr>0){
+           fprintf(stderr,"Index: %dFilename:%s\n" ,i,root_dir.list[i].filename);
+        }
+     }
+     fprintf(stderr,"\n\n");
+     return 1;
+}
 
 //create the file system
 void mksfs(int fresh){
@@ -517,34 +526,28 @@ int sfs_getfilesize(const char* path) {
 }
 
 int sfs_fopen(char *name) {  
-    
     if(!validate_filename(name)){
     	return -1;
     }
-    
-    int file_number = file_exists(name);   
+
+    int file_number = file_exists(name);
     if(file_number<0){
-        
         int inode_num = create_empty_inode();
-	
         if(inode_num<0) return -1;
-        
         int fdt_num = new_fd(inode_num);
- 
 	if(fdt_num<0) return -2;
 	f_table.fdt[fdt_num].inode = inode_num;
 	f_table.fdt[fdt_num].rptr = 0;
 	f_table.fdt[fdt_num].wptr = 0;
         int file_dir_num = new_file_dir(name,inode_num);
         if(file_dir_num<0) return -3;
-
         return fdt_num;		
     }
     else{
 	int inode_ptr = root_dir.list[file_number].inode_ptr;
         int infd = verify_in_fd(inode_ptr);
         if(infd>=0){
-            return -4;
+            return infd;
 	}
 
         int file_desc = new_fd(inode_ptr);
@@ -565,7 +568,6 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 	if(fileID<0||fileID >=fdt_size){
 	    return -1;
         }
-	
 	int inode = f_table.fdt[fileID].inode;
 	if(inode<0){
 	  return -2;
@@ -576,7 +578,6 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         int wptr_start_block = f -> wptr/BLOCK_SZ;
 	int blocks_writing = length/BLOCK_SZ+1;
 	int blocks_needed = (blocks_writing-blocks_used)+wptr_start_block;
- 	
         if(get_block_assignments(n,blocks_needed)<0){
 	    return -3; 
         }
@@ -675,12 +676,10 @@ int sfs_remove(char *file){
 	if(fd_pos>0){
 	    remove_fd(fd_pos);
 	}
-
 	//free the blocks in the inode
 	release_inode_blocks(inode_val);
-	
         //release the inode
-	release_inode(inode_val);
 	
+        release_inode(inode_val);
         return file_number;
 }
