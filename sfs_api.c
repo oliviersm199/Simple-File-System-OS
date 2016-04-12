@@ -20,7 +20,6 @@ int i_table_size = sizeof(i_table.index)/sizeof(i_table.index[0]);
 int bm_size = sizeof(bm.index)/sizeof(bm.index[0]);
 
 
-
 //initialization of superblock 
 void init_superblock(){
     sb.magic = 0xACBD0005;
@@ -384,10 +383,37 @@ for(int i =0;i<fdt_size;i++){
   }
   return -1;
 }
+//TEMPORARY FOR DEBUGGING
+int getrptr(int f_val){
+   return f_table.fdt[f_val].rptr;
+}
 
+int getwptr(int f_val){
+   return f_table.fdt[f_val].wptr;
+}
 
+int getinode(int f_val){
+   return f_table.fdt[f_val].inode;
+}
 
-//various helper functions
+int print_inode_table(){
+    fprintf(stderr,"\n\n");
+    for(int i=0;i<i_table_size;i++){
+        if(i_table.index[i].inuse==INODE_IN_USE){
+                    inode_t * i_ptr = &i_table.index[i];
+                    fprintf(stderr,"Inode Number:%d\n",i);
+                    fprintf(stderr,"\tSize:%d\n",i_ptr->size);
+                    fprintf(stderr,"\tPtrs Used:%d\n",i_ptr->ptrs_used);
+                    for(int j=0;j<12;j++){
+                        fprintf(stderr,"\tData Ptr:%d\tData Block %d\n",j,i_ptr->data_ptrs[j]);
+                    }
+                }
+            }
+    fprintf(stderr,"\n\n");
+    return 1;
+}
+
+//helper functions
 int validate_filename(char * name){
     int str_len = strlen(name);
     if(!str_len){
@@ -448,16 +474,20 @@ void mksfs(int fresh){
         save_bitmap_table();
         }
 	else{
-	    printf("reopening file system\n");
 	    int disk_result = init_disk(OLIS_DISK,BLOCK_SZ,NUM_BLOCKS);
 	    if(disk_result<0) return;
 	    read_blocks(0,1,&sb);
 	    read_blocks(1,sb.inode_table_len,&i_table);
 	    inode_t * i_ptr = &i_table.index[sb.root_dir_inode];
 	    int start_block = i_ptr -> data_ptrs[0];
-	    int num_blocks = sizeof(root_dir)/BLOCK_SZ + 1;
+	    int num_blocks = (sizeof(root_dir)/BLOCK_SZ)+ 1; 
 	    read_blocks(start_block,num_blocks,&root_dir); 
+	    
+	    //have to reintialize inode table again due to unknown cause.
+	    read_blocks(1,sb.inode_table_len,&i_table);
+
 	    read_blocks(BITMAP_START,NUM_BITMAP_BLOCKS,&bm);
+
 	    init_fdt();
 	}
     return;
@@ -492,6 +522,7 @@ int sfs_GetFileSize(const char* path) {
     int inode_number = f_table.fdt[file_number].inode;
     return i_table.index[inode_number].size;
 }
+
 
 int sfs_fopen(char *name) {  
     if(!validate_filename(name)){
@@ -620,11 +651,12 @@ int sfs_fseek(int fileID, int loc){
 	if(inode<0){
 	    return -2;
         }
-        if(loc<0 || loc > i_table.index[inode].size){ 
+        if(loc>=0 && loc <= i_table.index[inode].size){ 
             f_table.fdt[fileID].wptr = loc;
             f_table.fdt[fileID].rptr = loc;
+	    return loc;
         }
-        return 0;
+        return -3;
 }
 
 int sfs_remove(char *file){
