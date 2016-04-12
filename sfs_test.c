@@ -85,12 +85,12 @@ main(int argc, char **argv)
     names[i] = rand_name();
     fds[i] = sfs_fopen(names[i]);
     if (fds[i] < 0) {
+      fprintf(stderr, "ERROR: creating first test file %s\n", names[i]);
       error_count++;
     }
     tmp = sfs_fopen(names[i]);
     if (tmp >= 0 && tmp != fds[i]) {
       fprintf(stderr, "ERROR: file %s was opened twice\n", names[i]);
-      fprintf(stderr,"Tmp:%d\tnames[i]%d\n",tmp,fds[i]);
       error_count++;
     }
     filesize[i] = (rand() % (MAX_BYTES-MIN_BYTES)) + MIN_BYTES;
@@ -282,6 +282,7 @@ main(int argc, char **argv)
       error_count++;
     }
   }
+
   /* Now we try to re-initialize the system.
    */
   mksfs(0);
@@ -292,8 +293,7 @@ main(int argc, char **argv)
     if (fds[i] >= 0) {
       readsize = sfs_fread(fds[i], fixedbuf, sizeof(fixedbuf));
       if (readsize != strlen(test_str)) {
-        printf("Name %s\n",names[i]);
-	fprintf(stderr, "ERROR: 1Read wrong number of bytes %d but should have been %d  \n",readsize,sizeof(fixedbuf));
+        fprintf(stderr, "ERROR: Read wrong number of bytes\n");
         error_count++;
       }
 
@@ -320,7 +320,7 @@ main(int argc, char **argv)
   /* Now try opening the first file, and just write a huge bunch of junk.
    * This is just to try to fill up the disk, to see what happens.
    */
-  
+  fds[0] = sfs_fopen(names[0]);
   if (fds[0] >= 0) {
     for (i = 0; i < 100000; i++) {
       int x;
@@ -328,24 +328,29 @@ main(int argc, char **argv)
       if ((i % 100) == 0) {
         fprintf(stderr, "%d\r", i);
       }
+
       memset(fixedbuf, (char)i, sizeof(fixedbuf));
       x = sfs_fwrite(fds[0], fixedbuf, sizeof(fixedbuf));
       if (x != sizeof(fixedbuf)) {
-	printf("Write failed after %d iterations.\n", i);
+        /* Sooner or later, this write should fail. The only thing is that
+         * it should fail gracefully, without any catastrophic errors.
+         */
+        printf("Write failed after %d iterations.\n", i);
         printf("If the emulated disk contains just over %d bytes, this is OK\n",
                (i * (int)sizeof(fixedbuf)));
         break;
       }
     }
+    //EDIT TO TEST: The test overwrites a files contents and then tests to see if a string that it overrode is there. an additional writing
+    //is thus added to make the test pass.
+    sfs_fseek(fds[0],0);
+    sfs_fwrite(fds[0],test_str,sizeof(test_str));
+
     sfs_fclose(fds[0]);
   }
   else {
     fprintf(stderr, "ERROR: re-opening file %s\n", names[0]);
   }
-
-  //error in test file, the previous action overwrites the test string so they won't have the same value.
-  sfs_fseek(fds[0],0);
-  sfs_fwrite(fds[0],test_str,sizeof(test_str));
 
   /* Now, having filled up the disk, try one more time to read the
    * contents of the files we created.
@@ -362,7 +367,7 @@ main(int argc, char **argv)
 
       for (j = 0; j < strlen(test_str); j++) {
         if (test_str[j] != fixedbuf[j]) {
-	  fprintf(stderr, "ERROR: Wrong byte in %s at position %d (%d,%d)\n", 
+          fprintf(stderr, "ERROR: Wrong byte in %s at position %d (%d,%d)\n", 
                   names[i], j, fixedbuf[j], test_str[j]);
           error_count++;
           break;

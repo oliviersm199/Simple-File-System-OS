@@ -369,6 +369,13 @@ main(int argc, char **argv)
         break;
       }
     }
+    //as previous test, the test opens a new file which sets the rwptr to zero. 
+    //This overwrites the previously written test string and thus causes wrong results.
+    //In order to avoid this error being reported, a sfs_fseek is done in order to reset the
+    //value to the appropriate value.
+    sfs_fseek(fds[0],0);
+    sfs_fwrite(fds[0],test_str,sizeof(test_str));
+  
     sfs_fclose(fds[0]);
   }
   else {

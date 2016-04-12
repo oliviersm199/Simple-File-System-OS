@@ -8,7 +8,7 @@
 #define MAXFILENAME 21
 #define OLIS_DISK "sfs_disk.disk"
 #define BLOCK_SZ 1024
-#define NUM_BLOCKS 300
+#define NUM_BLOCKS 250
 #define NUM_INODES 100 
 #define NUM_INODE_BLOCKS (sizeof(inode_table)/ BLOCK_SZ + 1)
 //bitmap definitions
