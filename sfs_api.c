@@ -661,7 +661,6 @@ int sfs_fseek(int fileID, int loc){
 
 int sfs_remove(char *file){
 	//implement sfs_remove here
-	printf("Remove called\n");
 	if(!validate_filename(file)){
         	return -1;
 	}
